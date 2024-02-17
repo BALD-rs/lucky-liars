@@ -1,10 +1,16 @@
+use bevy::core_pipeline::experimental::taa::TemporalAntiAliasBundle;
+use bevy::pbr::ScreenSpaceAmbientOcclusionBundle;
 use bevy::prelude::*;
+use bevy::render::mesh::shape::Circle;
+use bevy::render::mesh::shape::Cube;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_yarnspinner::prelude::*;
 use bevy_yarnspinner_example_dialogue_view::prelude::*;
 use egui::FontFamily::Proportional;
 use egui::FontId;
 use egui::TextStyle::*;
+
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, States, Default)]
 enum AppState {
@@ -50,8 +56,15 @@ fn main() {
             // Initialize the bundled example UI
             ExampleYarnSpinnerDialogueViewPlugin::new(),
         ))
+        .add_plugins(WorldInspectorPlugin::new())
+
+        .insert_resource(AmbientLight {
+            color: Color::WHITE,
+            brightness: 0.5,
+        })
         .add_state::<AppState>()
         .insert_resource(Settings::default())
+        .insert_resource(Msaa::Off)
         .add_systems(Startup, setup_camera)
         .add_systems(Update, main_menu.run_if(in_state(AppState::MainMenu)))
         .add_systems(Update, show_options.run_if(in_state(AppState::Options)))
@@ -73,10 +86,22 @@ fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
 }
 
 fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+    let formation = Transform {
+        translation: Vec3::new(-4.6, 3.5, 1.2),
+        rotation: Quat::from_euler(EulerRot::XYZ, 0.0, -1.2, 0.0),
+        scale: Vec3::new(1.0,1.0,1.0),
+    };
+    commands.spawn((Camera3dBundle {
+        transform: formation,
         ..default()
-    });
+    },FogSettings {
+        color: Color::rgba(0.25, 0.25, 0.25, 1.0),
+        falloff: FogFalloff::Linear {
+            start: 5.0,
+            end: 20.0,
+        },
+        ..default()
+    },)).insert(ScreenSpaceAmbientOcclusionBundle::default()).insert(TemporalAntiAliasBundle::default());
 }
 
 fn main_menu(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppState>>) {
@@ -147,6 +172,13 @@ fn launch_game(
     mut animations: ResMut<Assets<AnimationClip>>,
     asset_server: Res<AssetServer>,
 ) {
+    // Camera (yippee)
+    // commands.spawn(Camera3dBundle {
+    //     transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //     ..default()
+    // });
+
+    // Suspects (scary)
     commands.spawn((
         Suspect {
             name: String::from("Suspect 1"),
@@ -165,4 +197,28 @@ fn launch_game(
         },
         Away,
     ));
+
+    commands.spawn(PointLightBundle {
+        // transform: Transform::from_xyz(5.0, 8.0, 2.0),
+        transform: Transform::from_xyz(1.0, 6.5, 0.0),
+        point_light: PointLight {
+            intensity: 3000.0, // lumens - roughly a 300W non-halogen incandescent bulb
+            color: Color::WHITE,
+            shadows_enabled: true,
+            ..default()
+        },
+        ..default()
+    });
+
+    // Blender scene (poggers)
+    commands
+    .spawn((
+        SceneBundle {
+            scene: asset_server.load("3d/room.glb#Scene0"),
+            transform: Transform::from_translation(Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            ..default()
+        },
+    ));
+
+    println!("Added assess");
 }
