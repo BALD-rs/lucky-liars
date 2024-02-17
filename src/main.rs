@@ -1,4 +1,5 @@
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasBundle;
+use bevy::core_pipeline::experimental::taa::TemporalAntiAliasPlugin;
 use bevy::pbr::ScreenSpaceAmbientOcclusionBundle;
 use bevy::prelude::*;
 use bevy::render::mesh::shape::Circle;
@@ -57,7 +58,7 @@ fn main() {
             ExampleYarnSpinnerDialogueViewPlugin::new(),
         ))
         .add_plugins(WorldInspectorPlugin::new())
-
+        .add_plugins(TemporalAntiAliasPlugin)
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 0.5,
@@ -139,7 +140,6 @@ fn main_menu(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppSta
 fn show_options(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppState>>, mut settings: ResMut<Settings>) {
     let mut ctx = contexts.ctx_mut();
     egui::CentralPanel::default().show(&ctx, |ui| {
-
         let mut style = (*ctx.style()).clone();
 
         style.text_styles = [
