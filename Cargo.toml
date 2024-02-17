@@ -1,0 +1,19 @@
+[package]
+name = "cornhacks24-game"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = { version = "0.12.1", features = ["dynamic_linking", "file_watcher"] }
+bevy_egui = "0.24.0"
+bevy-inspector-egui = "0.22.1"
+bevy_yarnspinner = "0.1.2"
+bevy_yarnspinner_example_dialogue_view = "0.1.0"
+elevenlabs_rs = "0.2.0"
+reqwest = { version = "0.11.24", features = ["blocking", "json"] }
+serde_json = "1.0.113"
+serialport = "4.3.0"
+tokio = "1.36.0"
+whisper-rs = "0.10.0"
