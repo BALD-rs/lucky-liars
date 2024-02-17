@@ -43,13 +43,13 @@ fn main() {
         .add_state::<AppState>()
         .add_systems(Startup, setup_camera)
         .add_systems(Update, main_menu.run_if(in_state(AppState::MainMenu)))
+        .add_systems(OnEnter(AppState::Options), show_options)
+        .add_systems(OnEnter(AppState::Game), launch_game)
         .add_systems(
-            Update,
+            OnEnter(AppState::Game),
             // Spawn the dialogue runner once the Yarn project has finished compiling
             spawn_dialogue_runner.run_if(resource_added::<YarnProject>()),
         )
-        .add_systems(OnEnter(AppState::Options), show_options)
-        .add_systems(OnEnter(AppState::Game), launch_game)
         .run();
 }
 
@@ -57,7 +57,7 @@ fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
     // Create a dialogue runner from the project.
     let mut dialogue_runner = project.create_dialogue_runner();
     // Immediately start showing the dialogue to the player
-    dialogue_runner.start_node("HelloWorld");
+    dialogue_runner.start_node("Prologue");
     commands.spawn(dialogue_runner);
 }
 
@@ -76,6 +76,9 @@ fn main_menu(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppSta
         }
         if ui.add(egui::Button::new("Game")).clicked() {
             next_state.set(AppState::Game);
+        }
+        if ui.add(egui::Button::new("Exit")).clicked() {
+            std::process::exit(0);
         }
     });
 }
