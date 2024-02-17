@@ -2,6 +2,9 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_yarnspinner::prelude::*;
 use bevy_yarnspinner_example_dialogue_view::prelude::*;
+use egui::FontFamily::Proportional;
+use egui::FontId;
+use egui::TextStyle::*;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, States, Default)]
 enum AppState {
@@ -13,6 +16,13 @@ enum AppState {
 
 #[derive(Resource, Default)]
 struct Resource {}
+
+#[derive(Resource, Default)]
+struct Settings {
+    volume: f32,
+    hardware_pg: bool,
+    hardware_device: String,
+}
 
 #[derive(Component)]
 struct Suspect {
@@ -41,9 +51,10 @@ fn main() {
             ExampleYarnSpinnerDialogueViewPlugin::new(),
         ))
         .add_state::<AppState>()
+        .insert_resource(Settings::default())
         .add_systems(Startup, setup_camera)
         .add_systems(Update, main_menu.run_if(in_state(AppState::MainMenu)))
-        .add_systems(OnEnter(AppState::Options), show_options)
+        .add_systems(Update, show_options.run_if(in_state(AppState::Options)))
         .add_systems(OnEnter(AppState::Game), launch_game)
         .add_systems(
             OnEnter(AppState::Game),
@@ -70,22 +81,63 @@ fn setup_camera(mut commands: Commands) {
 
 fn main_menu(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppState>>) {
     let mut ctx = contexts.ctx_mut();
+    
     egui::CentralPanel::default().show(&ctx, |ui| {
-        if ui.add(egui::Button::new("Options")).clicked() {
-            next_state.set(AppState::Options);
-        }
-        if ui.add(egui::Button::new("Game")).clicked() {
-            next_state.set(AppState::Game);
-        }
-        if ui.add(egui::Button::new("Exit")).clicked() {
-            std::process::exit(0);
-        }
+        let mut style = (*ctx.style()).clone();
+
+        style.text_styles = [
+        (Heading, FontId::new(30.0, Proportional)),
+        (Name("Heading2".into()), FontId::new(25.0, Proportional)),
+        (Name("Context".into()), FontId::new(23.0, Proportional)),
+        (Body, FontId::new(28.0, Proportional)),
+        (Monospace, FontId::new(14.0, Proportional)),
+        (bevy_egui::egui::TextStyle::Button, FontId::new(44.0, Proportional)),
+        (Small, FontId::new(20.0, Proportional)),
+        ].into();
+
+        ctx.set_style(style);
+
+        ui.vertical_centered(|ui| {
+            if ui.add(egui::Button::new("Start")).clicked() {
+                next_state.set(AppState::Game);
+            }
+            if ui.add(egui::Button::new("Options")).clicked() {
+                next_state.set(AppState::Options);
+            }
+            if ui.add(egui::Button::new("Exit")).clicked() {
+                std::process::exit(0);
+            }
+        });
     });
 }
 
-fn show_options(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppState>>) {
+fn show_options(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppState>>, mut settings: ResMut<Settings>) {
     let mut ctx = contexts.ctx_mut();
-    egui::CentralPanel::default().show(&ctx, |ui| {});
+    egui::CentralPanel::default().show(&ctx, |ui| {
+
+        let mut style = (*ctx.style()).clone();
+
+        style.text_styles = [
+        (Heading, FontId::new(50.0, Proportional)),
+        (Name("Heading2".into()), FontId::new(35.0, Proportional)),
+        (Name("Context".into()), FontId::new(33.0, Proportional)),
+        (Body, FontId::new(38.0, Proportional)),
+        (Monospace, FontId::new(24.0, Proportional)),
+        (bevy_egui::egui::TextStyle::Button, FontId::new(34.0, Proportional)),
+        (Small, FontId::new(30.0, Proportional)),
+        ].into();
+
+        ctx.set_style(style);
+        ui.vertical_centered(|ui| {
+            ui.heading("Settings:");
+            ui.add(egui::Slider::new(&mut settings.volume, 0.0..=1.0).text("Volume"));
+            ui.add(egui::Checkbox::new(&mut settings.hardware_pg, "Hardware Polygraph"));
+            ui.add(egui::Checkbox::new(&mut settings.hardware_pg, "IDK I CHANGE LATER"));
+            if ui.add(egui::Button::new("Main menu")).clicked() {
+                next_state.set(AppState::MainMenu);
+            }
+        });
+    });
 }
 
 fn launch_game(
