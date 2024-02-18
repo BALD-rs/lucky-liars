@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/blaine-t/eduwiz/assets/77523903/58dc37f4-773b-488f-8c7e-ab76e687d224" width="300 height="300">
+  <img src="https://github.com/BALD-rs/lucky-liars/blob/main/logo.png?raw=true" width="700 height="400">
 <h1>Lucky Liars</h1>
   <h3>Powered by Rust 🦀</h3>
 </div>
