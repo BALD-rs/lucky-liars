@@ -1,6 +1,8 @@
+use bevy::audio::AudioPlugin;
 use bevy::render::mesh::shape::Plane;
 use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use cornhacks24_game::tts;
 use rand::Rng;
 use std::collections::HashMap;
 use std::fs::File;
@@ -150,10 +152,13 @@ fn handle_keypress(
     game_info: Res<GameInfo>,
     mut dr: Query<&mut DialogueRunner>,
     mut active: Query<&bevy::prelude::Name, With<Present>>,
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
 ) {
     let mut buffer: [u8; 1] = [0; 1];
     match globals.port.get_mut().unwrap().read(&mut buffer) {
         Ok(bytes) => {
+            println!("{:?}", buffer);
             if bytes == 1 && (buffer == [48] || buffer == [49]) {
                 let button = buffer[0] - 48;
                 // Button do be pressed
@@ -171,7 +176,7 @@ fn handle_keypress(
                         let our_roll = rand::thread_rng().gen_range(0..20);
                         let req = req::InterrogateRequest {
                             game_id: game_info.game_id.clone(),
-                            name: active_name,
+                            name: active_name.clone(),
                             message: output,
                             our_roll: our_roll,
                             sus_roll: 0,
@@ -180,7 +185,7 @@ fn handle_keypress(
                             .port
                             .get_mut()
                             .unwrap()
-                            .write(format!("D{}", our_roll.to_string()).as_bytes());
+                            .write(format!("D{:02}", our_roll).as_bytes());
                         let sus_ponse = req::interrogate(req);
                         let sus_ponse_text = sus_ponse.response;
                         let sus_ponse_confidence = sus_ponse.confidence;
@@ -188,7 +193,12 @@ fn handle_keypress(
                             .port
                             .get_mut()
                             .unwrap()
-                            .write(sus_ponse_confidence.to_string().as_bytes());
+                            .write(format!("P{:02}", sus_ponse_confidence).as_bytes());
+                        commands.spawn(AudioBundle {
+                            source: asset_server
+                                .load(tts::say(sus_ponse_text.clone(), active_name)),
+                            ..default()
+                        });
                         let mut diag = dr.get_single_mut().unwrap();
                         let variable_storage = diag.variable_storage_mut();
                         variable_storage.set("$responseText".to_string(), sus_ponse_text.into());
@@ -383,15 +393,17 @@ fn launch_game(
     });
 
     // Blender scene (poggers)
-    commands.spawn((SceneBundle {
-        scene: asset_server.load("3d/room.glb#Scene0"),
-        transform: Transform::from_translation(Vec3 {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
+    commands.spawn(
+        (SceneBundle {
+            scene: asset_server.load("3d/room.glb#Scene0"),
+            transform: Transform::from_translation(Vec3 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+            ..default()
         }),
-        ..default()
-    }));
+    );
 
     commands.spawn((
         bevy::prelude::Name::new("door"),
@@ -399,14 +411,13 @@ fn launch_game(
         SceneBundle {
             scene: asset_server.load("3d/door.glb#Scene0"),
             transform: Transform::from_translation(Vec3 {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }),
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            }),
             ..default()
         },
     ));
-
 }
 
 fn start_game_listener(mut game_reader: EventReader<StartGame>, mut game: ResMut<GameInfo>) {
@@ -436,7 +447,7 @@ fn send_forth(
     In(suspect_name): In<String>,
     mut move_writer: EventWriter<MoveSuspect>,
     query: Query<(&bevy::prelude::Name, Entity), With<Away>>,
-    
+
     game_info: Res<GameInfo>,
     mut dr: Query<&mut DialogueRunner>,
 ) {
@@ -494,7 +505,7 @@ fn handle_movements(
                         keyframes: Keyframes::Rotation(vec![
                             Quat::from_rotation_y(0.0),
                             Quat::from_rotation_y(2.0),
-                            Quat::from_rotation_y(0.0)
+                            Quat::from_rotation_y(0.0),
                         ]),
                     },
                 );
@@ -535,7 +546,7 @@ fn handle_movements(
                         keyframes: Keyframes::Rotation(vec![
                             Quat::from_rotation_y(0.0),
                             Quat::from_rotation_y(2.0),
-                            Quat::from_rotation_y(0.0)
+                            Quat::from_rotation_y(0.0),
                         ]),
                     },
                 );
@@ -543,10 +554,9 @@ fn handle_movements(
                 let mut anim_player = AnimationPlayer::default();
                 let mut anim_player2 = AnimationPlayer::default();
 
-
                 anim_player.play(animations.add(anim.clone()));
                 anim_player2.play(animations.add(anim));
-                
+
                 commands.entity(*entity).insert(anim_player);
                 commands.entity(door.single().0).insert(anim_player2);
             }
