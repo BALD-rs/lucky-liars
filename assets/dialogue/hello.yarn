@@ -18,15 +18,15 @@ Welcome to america!
 
 title: gameplay_loop
 ---
-Jesse: Who would you like to investigate detective?
+Detective Jesse: Who would you like to investigate detective?
 -> Send forth Clyde
-    Jesse: Retrieving Clyde.
+    Detective Jesse: Retrieving Clyde.
     <<send_forth Clyde>>
 -> Send forth Glinda
-    Jesse: Bringing you Glinda.
+    Detective Jesse: Bringing you Glinda.
     <<send_forth Glinda>>
 -> Send forth Harry
-    Jesse: Here's Harry.
+    Detective Jesse: Here's Harry.
     <<send_forth Harry>>
 <<jump investigate_active>>
 ===
@@ -48,7 +48,7 @@ The murderer runs free.
 title: investigate_active
 ---
 <<declare $activeDossier = "PENDING!">>
-Jesse: What would you like to do?
+Detective Jesse: What would you like to do?
 -> Interrogate
     Hold Button To Interrogate.
 -> Read Dossier
@@ -83,33 +83,28 @@ title: Prologue
 ---
 20 years ago...
 It was like any dark stormy night in Lincoln, NE.
-Bork (10M) had just drifted off to sleep
-All of a sudden there was a loud *screech*
-Bork was awoken by the loud noise and went to his parents room
-He couldn't find them
-He scrambled around the house looking for them to no avail
+A young Derek Dynamo had just drifted off to sleep.
+But in the house, a loud screech filled the air.
+Derek jolted awake, and ran to his loving parents for comfort.
+And yet, they were nowhere in sight.
+He scrambled across the house looking for them, searched all up and down his neighborhood, and found not a soul.
 20 years pass...
-Bork (30M) is now an operative in the FBI working on cold cases
+Derek Dynamo is now an FBI Operative working on cold cases.
 One of these cases catches his eye
 It's the case of his parents disappearance...
-There has been a recent lead on the case
+There has been a recent lead on the case from the local police department
 There are 3 top suspects that he must interview in order to find out who is the culprit behind his parents disappearance
 <<jump Hello>>
 ====
 
 title: Hello
 ---
-Welcome to the interrogation room!
-Your job is to interview the 3 top suspects in order to solve the case
-You are given a couple tools to accomplish this
-The first is your notepad which you will see on the top left
-Feel free to create new tabs for different notes
-You have been provided with 4 to start though
-Next you have your suspect selector on the bottom left
-You are able to choose between the different suspects by clicking on them
-Finally you have your polygraph. This will be on the right of your screen OR if you have the specialty hardware kit™ then you will be able to see the polygraph in 3D!
-In order to talk to your suspects you can either use your voice or write your response if you don't want to use your mic
-If you have the specialty hardware kit™ you can use the built-in button to use push-to-talk with the suspect
--> Bring in the suspects!
-    <<jump gameplay_loop>>
+Tutorial: Welcome to the interrogation room!
+Tutorial: Your job is to interview the top 3 suspects in order to solve the case!
+Tutorial: You are given two tools to accomplish this:
+Tutorial: First, your unreliable probability polygraph. Spikes can indicate a lie, similar to a real polygraph.
+Tutorial: Second, your perception dice. When rolling this (automatically done in game), they give a number between 0 and 20 to represent the accuracy of your polygraph.
+Tutorial: You can swap out the suspects at any time, and interrogate them using a state of the art push to talk button.
+Tutorial: Let's bring in the suspects!
+<<jump gameplay_loop>>
 ===
