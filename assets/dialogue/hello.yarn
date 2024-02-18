@@ -50,7 +50,7 @@ title: investigate_active
 <<declare $activeDossier = "PENDING!">>
 Jesse: What would you like to do?
 -> Interrogate
-    Press Button To Interrogate.
+    Hold Button To Interrogate.
 -> Read Dossier
     Dossier: {$activeDossier}
     <<jump investigate_active>>
