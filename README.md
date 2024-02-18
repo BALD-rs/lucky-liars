@@ -20,9 +20,13 @@ Playing as Detective Derek Dynamo of the FBI, you are investigating a murder cas
 ## Bevy Engine 
 <h3>The Bevy game engine is an open source engine written in Rust, and it powered our game client. We used it for its speed and portability on any system. </h3>
 
+<br>
 
+<img align="left" width="170" src="https://github.com/BALD-rs/lucky-liars/assets/65707789/804812c0-080a-4025-a649-6848cfd04fb3" />
+## Blender
+<h3>Blender was used to create all the assets for the game during the hackathon. All 3d models were made locally, with their textures taken from images inside the Johnny Carson Center for Emerging Media Arts</h3>
 <br>
-<br>
+
 <img align="left" width="170" src="https://media.licdn.com/dms/image/D4E12AQEBg943ptCYpg/article-cover_image-shrink_720_1280/0/1686391647921?e=2147483647&v=beta&t=sTfwUvcIfW7Fuby7hMluDfuRJK3HfYMMWc2SyZR7-GA" />
 
 ## Express.js
