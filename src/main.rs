@@ -177,7 +177,7 @@ fn handle_keypress(
                         thread::sleep(Duration::from_millis(200));
                         let output = stt::parse_audio();
                         let active_name = active.single_mut().to_string();
-                        let our_roll = rand::thread_rng().gen_range(0..20);
+                        let our_roll = rand::thread_rng().gen_range(1..21);
                         let req = req::InterrogateRequest {
                             game_id: game_info.game_id.clone(),
                             name: active_name.clone(),
