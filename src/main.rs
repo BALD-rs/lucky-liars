@@ -1,3 +1,4 @@
+use bevy::render::mesh::shape::Plane;
 use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use rand::Rng;
@@ -103,8 +104,8 @@ fn main() {
             YarnSpinnerPlugin::new(),
             ExampleYarnSpinnerDialogueViewPlugin::new(),
         ))
-        .add_plugins(ResourceInspectorPlugin::<GameInfo>::default())
-        .add_plugins(WorldInspectorPlugin::new())
+        //.add_plugins(ResourceInspectorPlugin::<GameInfo>::default())
+        //.add_plugins(WorldInspectorPlugin::new())
         .add_plugins(TemporalAntiAliasPlugin)
         .insert_resource(AmbientLight {
             color: Color::WHITE,
@@ -339,33 +340,32 @@ fn launch_game(
     game_writer.send(StartGame);
 
     // Suspects (scary)
+
+    //let mut clydterial = ColorMaterial::from(clyde_image);
     commands.spawn((
         bevy::prelude::Name::new("Clyde"),
         Away,
-        PbrBundle {
-            mesh: meshes.add(Cube::new(1.0).into()),
-            material: materials.add(Color::rgb_u8(255, 0, 0).into()),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+        SceneBundle {
+            scene: asset_server.load("3d/clyde.glb#Scene0"),
+            transform: Transform::from_xyz(0.0, -1.5, 0.0),
             ..default()
         },
     ));
     commands.spawn((
         bevy::prelude::Name::new("Glinda"),
         Away,
-        PbrBundle {
-            mesh: meshes.add(Cube::new(1.0).into()),
-            material: materials.add(Color::rgb_u8(0, 255, 0).into()),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+        SceneBundle {
+            scene: asset_server.load("3d/glinda.glb#Scene0"),
+            transform: Transform::from_xyz(0.0, -1.5, 0.0),
             ..default()
         },
     ));
     commands.spawn((
         bevy::prelude::Name::new("Harry"),
         Away,
-        PbrBundle {
-            mesh: meshes.add(Cube::new(1.0).into()),
-            material: materials.add(Color::rgb_u8(0, 0, 255).into()),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+        SceneBundle {
+            scene: asset_server.load("3d/harry.glb#Scene0"),
+            transform: Transform::from_xyz(0.0, -1.5, 0.0),
             ..default()
         },
     ));
@@ -393,9 +393,6 @@ fn launch_game(
         ..default()
     },));
 
-    println!("Added assets");
-    //recording::record();
-    println!("{}", stt::parse_audio());
 }
 
 fn start_game_listener(mut game_reader: EventReader<StartGame>, mut game: ResMut<GameInfo>) {
@@ -463,8 +460,8 @@ fn handle_movements(
                     VariableCurve {
                         keyframe_timestamps: vec![0.0, 3.0],
                         keyframes: Keyframes::Translation(vec![
-                            Vec3::new(2.1, 2.6, 0.2),
-                            Vec3::new(4.8, 2.6, -9.5),
+                            Vec3::new(2.1, 1.6, 0.2),
+                            Vec3::new(4.8, 1.6, -9.5),
                         ]),
                     },
                 );
@@ -486,8 +483,8 @@ fn handle_movements(
                     VariableCurve {
                         keyframe_timestamps: vec![0.0, 3.0],
                         keyframes: Keyframes::Translation(vec![
-                            Vec3::new(4.8, 2.6, -9.5),
-                            Vec3::new(2.1, 2.6, 0.2),
+                            Vec3::new(4.8, 1.6, -9.5),
+                            Vec3::new(2.1, 1.6, 0.2),
                         ]),
                     },
                 );
