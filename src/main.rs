@@ -13,10 +13,11 @@ use bevy_yarnspinner_example_dialogue_view::prelude::*;
 use egui::FontFamily::Proportional;
 use egui::FontId;
 use egui::TextStyle::*;
+use serialport::SerialPort;
 
 use cornhacks24_game::recording;
 use cornhacks24_game::serial;
-use serialport::SerialPort;
+use cornhacks24_game::stt;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, States, Default)]
 enum AppState {
@@ -263,5 +264,7 @@ fn launch_game(
         ..default()
     },));
 
-    println!("Added assess");
+    println!("Added assets");
+    recording::record();
+    println!("{}", stt::parse_audio());
 }

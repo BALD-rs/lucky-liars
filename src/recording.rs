@@ -139,7 +139,7 @@ pub fn record() -> Result<(), anyhow::Error> {
     // Let recording go for roughly three seconds.
     let mut buttonPressed = true;
     while buttonPressed {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        std::thread::sleep(std::time::Duration::from_secs(0));
         buttonPressed = false;
     }
     drop(stream);
