@@ -43,8 +43,8 @@ Playing as Detective Derek Dynamo of the FBI, you are investigating a murder cas
 <h3>The game is made more realistic through the use of an intercom button and nixie tubes to display the numbers. The peripheral is required to enable speech-to-text, making the game more realistic, as if the user was pressing an intercom button. After the user releases the button, a D20 is rolled and the result is displayed using the nixie tubes with a special animation. This value is similar to a "perception check," and the result is crucial to determining the true killer. The code for the hardware can be found in <a href="https://github.com/BALD-rs/lucky-liars-hardware">this repository</a>.</h3>
 
 ## Developed by
-- Louis Quattrocchi
 - Blaine Traudt
-- Dawson McGahan
 - Anton Angeletti
+- Louis Quattrocchi
+- Dawson McGahan
 
