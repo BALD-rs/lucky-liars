@@ -225,20 +225,15 @@ fn handle_keypress(
     if keys.just_pressed(KeyCode::Space) {}
 }
 
-fn end_game(
-    In(guess): In<(String)>,
-    game_info: Res<GameInfo>,
-    mut dr: Query<&mut DialogueRunner>
-) {
+fn end_game(In(guess): In<(String)>, game_info: Res<GameInfo>, mut dr: Query<&mut DialogueRunner>) {
     let mut diag = dr.get_single_mut().unwrap();
     diag.stop();
-    
+
     if guess == game_info.killer {
         diag.start_node("win");
     } else {
         diag.start_node("lose");
     }
-    
 }
 
 fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
@@ -248,10 +243,15 @@ fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
         .commands_mut()
         .add_command("send_back_active", send_back_active)
         .add_command("send_forth", send_forth)
-        .add_command("end_game", end_game);
+        .add_command("end_game", end_game)
+        .add_command("stop_poly", stop_poly);
     // Immediately start showing the dialogue to the player
     dialogue_runner.start_node("gameplay_loop");
     commands.spawn(dialogue_runner);
+}
+
+fn stop_poly(In(()): In<()>, mut globals: ResMut<GlobalVars>) {
+    globals.port.get_mut().unwrap().write("S".as_bytes());
 }
 
 fn setup_camera(mut commands: Commands) {

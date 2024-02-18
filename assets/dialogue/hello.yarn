@@ -75,6 +75,7 @@ title: interrogate_response
 <<declare $activeSuspect = "Clyde">>
 <<declare $responseText = "PENDING!">>
 {$activeSuspect}: {$responseText}
+<<stop_poly>>
 <<jump investigate_active>>
 ===
 
