@@ -3,6 +3,10 @@ use std::io::BufWriter;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::thread;
+use std::sync::mpsc::channel;
+use std::time::Duration;
+
 
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasBundle;
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasPlugin;
@@ -37,8 +41,8 @@ enum AppState {
 }
 
 #[derive(Resource)]
-struct microphone {
-    producer: Sender<i32>
+struct Microphone {
+    producer: Option<Sender<i32>>
 }
 
 #[derive(Event)]
@@ -99,6 +103,7 @@ fn main() {
             color: Color::WHITE,
             brightness: 0.5,
         })
+        .insert_resource(Microphone{ producer: None})
         .insert_resource(GameInfo::default())
         .add_state::<AppState>()
         .add_event::<MoveSuspect>()
@@ -118,7 +123,7 @@ fn main() {
         .add_systems(Update, main_menu.run_if(in_state(AppState::MainMenu)))
         .add_systems(Update, show_options.run_if(in_state(AppState::Options)))
         .add_systems(OnEnter(AppState::Game), launch_game)
-        .add_systems(Update, (handle_movements, start_game_listener))
+        .add_systems(Update, (handle_movements, start_game_listener, handle_keypress))
         .add_systems(
             OnEnter(AppState::Game),
             // Spawn the dialogue runner once the Yarn project has finished compiling
@@ -127,9 +132,25 @@ fn main() {
         .run();
 }
 
-fn handle_keypress (keys: Res<Input<KeyCode>>) {
+fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>) {
     if keys.just_pressed(KeyCode::Space) {
-        
+        println!("We press");
+        // Already exists, kill
+        if let Some(tx) = &mut mic.producer {
+            // Kill is a go.
+            tx.send(5).unwrap();
+            mic.producer = None;
+            // For later optimizations
+            thread::sleep(Duration::from_millis(200));
+            let output = stt::parse_audio();
+            println!("{output}");
+        } else { // Not yet exist, life
+            let (tx, rx) = channel();
+            thread::spawn(move|| {
+                recording::record(rx);
+            });
+            mic.producer = Some(tx);
+        }
     }
 }
 
@@ -321,8 +342,8 @@ fn launch_game(
 
 fn start_game_listener(mut game_reader: EventReader<StartGame>) {
     for _ in game_reader.read() {
-        let start_response = req::start();
-        println!("Game Code: {:?}", start_response);
+        //let start_response = req::start();
+        //println!("Game Code: {:?}", start_response);
     }
 }
 

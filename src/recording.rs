@@ -34,10 +34,6 @@ struct Opt {
 pub fn record(rx: Receiver<i32>) -> Result<(), anyhow::Error> {
     let opt = Opt::parse();
     // Create a simple streaming channel
-    let (tx, rx) = channel();
-    thread::spawn(move|| {
-        tx.send(10).unwrap();
-    });
 
     // Conditionally compile with jack if the feature is specified.
     #[cfg(all(
@@ -145,11 +141,14 @@ pub fn record(rx: Receiver<i32>) -> Result<(), anyhow::Error> {
 
     stream.play()?;
 
-    if let Ok(_) = rx.recv() {
+    if let Ok(val) = rx.recv() {
+        println!("Val: {val}");
         drop(stream);
         writer.lock().unwrap().take().unwrap().finalize()?;
         println!("Recording {} complete!", PATH);
     }
+
+    println!("We Win These");
 
     Ok(())
 }
