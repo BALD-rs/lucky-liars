@@ -354,7 +354,7 @@ fn show_options(
             ));
             ui.add(egui::Checkbox::new(
                 &mut settings.hardware_pg,
-                "IDK I CHANGE LATER",
+                "Software Polygraph",
             ));
             if ui.add(egui::Button::new("Main menu")).clicked() {
                 next_state.set(AppState::MainMenu);
