@@ -21,7 +21,7 @@ pub struct InterrogateResponse {
     pub response: String,
 }
 
-pub fn interrogate(req: InterrogateRequest) {
+pub fn interrogate(req: InterrogateRequest) -> String {
     dotenv().ok();
     let res = reqwest::blocking::Client::new()
         .post(format!("{}{}", dotenv!("API_BASE_URL"), "interrogate"))
@@ -29,17 +29,17 @@ pub fn interrogate(req: InterrogateRequest) {
         .send()
         .unwrap();
     let json = res.json::<InterrogateResponse>().unwrap();
-    println!("res = {:?}", json.response);
+    json.response
 }
 
-pub fn clear(req: ClearRequest) {
+pub fn clear(req: ClearRequest) -> String {
     let res = reqwest::blocking::Client::new()
         .post(format!("{}{}", dotenv!("API_BASE_URL"), "clear"))
         .json(&req)
         .send()
         .unwrap();
     let json = res.json::<InterrogateResponse>().unwrap();
-    println!("res = {:?}", json.response);
+    json.response
 }
 
 pub fn start() {
@@ -47,6 +47,4 @@ pub fn start() {
         .post(format!("{}{}", dotenv!("API_BASE_URL"), "start"))
         .send()
         .unwrap();
-    let json = res.json::<InterrogateResponse>().unwrap();
-    println!("res = {:?}", json.response);
 }
