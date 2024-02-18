@@ -1,6 +1,7 @@
 use dotenvy::dotenv;
 use dotenvy_macro::dotenv;
 use serde::{Deserialize, Serialize};
+use serde_json::Map;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ClearRequest {
@@ -21,12 +22,19 @@ pub struct InterrogateResponse {
     pub response: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct StartResponse {
     pub game_id: String,
-    // pub clyde: String,
-    // pub glinda: String,
-    // pub harry: String,
+    clyde: String,
+    glinda: String,
+    harry: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct dossiers {
+    clyde: String,
+    glinda: String,
+    harry: String,
 }
 
 pub fn interrogate(req: InterrogateRequest) -> String {

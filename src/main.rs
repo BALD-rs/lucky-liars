@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io;
 use std::io::BufWriter;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
@@ -6,7 +7,8 @@ use std::sync::Mutex;
 use std::thread;
 use std::sync::mpsc::channel;
 use std::time::Duration;
-
+use bevy_inspector_egui::prelude::*;
+use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasBundle;
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasPlugin;
@@ -51,7 +53,8 @@ struct StopMic;
 #[derive(Event)]
 struct StartGame;
 
-#[derive(Resource, Default)]
+#[derive(Reflect, Resource, Default, InspectorOptions)]
+#[reflect(Resource, InspectorOptions)]
 struct GameInfo {
     game_id: String,
 }
@@ -89,7 +92,7 @@ struct Present;
 struct Transitioning;
 
 fn main() {
-    //let (port_names, mut port) = serial::setup();
+    let (port_names, mut port) = serial::setup();
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(EguiPlugin)
@@ -97,6 +100,7 @@ fn main() {
             YarnSpinnerPlugin::new(),
             ExampleYarnSpinnerDialogueViewPlugin::new(),
         ))
+        .add_plugins(ResourceInspectorPlugin::<GameInfo>::default())
         .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(TemporalAntiAliasPlugin)
         .insert_resource(AmbientLight {
@@ -116,9 +120,9 @@ fn main() {
             hardware_devices: Vec::new(),
         })
         .insert_resource(Msaa::Off)
-        // .insert_resource(GlobalVars {
-        //     port: Mutex::new(port),
-        // })
+        .insert_resource(GlobalVars {
+            port: Mutex::new(port),
+        })
         .add_systems(Startup, setup_camera)
         .add_systems(Update, main_menu.run_if(in_state(AppState::MainMenu)))
         .add_systems(Update, show_options.run_if(in_state(AppState::Options)))
@@ -132,9 +136,15 @@ fn main() {
         .run();
 }
 
-fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>) {
-    if keys.just_pressed(KeyCode::Space) {
-        println!("We press");
+fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>, mut globals: ResMut<GlobalVars>) {
+    let mut buffer: [u8; 1] = [0; 1];
+    match globals.port.get_mut().unwrap().read(&mut buffer) {
+        Ok(bytes) => {
+            if bytes == 1 && (buffer == [48] || buffer == [49]) {
+                let button = buffer[0] - 48;
+                // Button do be pressed
+                if button == 1 || button == 0 {
+                    println!("We press");
         // Already exists, kill
         if let Some(tx) = &mut mic.producer {
             // Kill is a go.
@@ -151,6 +161,15 @@ fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>) {
             });
             mic.producer = Some(tx);
         }
+                }
+                println!("{button}");
+            }
+        }
+        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+        Err(e) => eprintln!("{:?}", e),
+    }
+    if keys.just_pressed(KeyCode::Space) {
+        
     }
 }
 
@@ -340,9 +359,10 @@ fn launch_game(
     println!("{}", stt::parse_audio());
 }
 
-fn start_game_listener(mut game_reader: EventReader<StartGame>) {
+fn start_game_listener(mut game_reader: EventReader<StartGame>, mut game: ResMut<GameInfo>) {
     for _ in game_reader.read() {
-        //let start_response = req::start();
+        let start_response = req::start();
+        game.game_id = start_response.game_id;
         //println!("Game Code: {:?}", start_response);
     }
 }
