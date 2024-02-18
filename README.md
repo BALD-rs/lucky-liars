@@ -23,7 +23,9 @@ Playing as Detective Derek Dynamo of the FBI, you are investigating a murder cas
 <br>
 
 <img align="left" width="170" src="https://github.com/BALD-rs/lucky-liars/assets/65707789/804812c0-080a-4025-a649-6848cfd04fb3" />
+
 ## Blender
+
 <h3>Blender was used to create all the assets for the game during the hackathon. All 3d models were made locally, with their textures taken from images inside the Johnny Carson Center for Emerging Media Arts</h3>
 <br>
 
@@ -31,14 +33,14 @@ Playing as Detective Derek Dynamo of the FBI, you are investigating a murder cas
 
 ## Express.js
 
-<h3>The API was written in Node.js using the Express web framework for handling the AI characters and story generation. A separate API server is needed in order to handle persistence of the characters' backstories and personalities throughout the interrogation, as well as handling generation of a new murder mystery and a new killer every playthrough. The code for the API can be found in (this repository)[https://github.com/BALD-rs/cornhacks24-api].</h3>
+<h3>The API was written in Node.js using the Express web framework for handling the AI characters and story generation. A separate API server is needed in order to handle persistence of the characters' backstories and personalities throughout the interrogation, as well as handling generation of a new murder mystery and a new killer every playthrough. The code for the API can be found in <a href="https://github.com/BALD-rs/cornhacks24-api">this repository</a>.</h3>
 <br>
 
 <img align="left" width="170" src="https://github.com/BALD-rs/cornhacks24-game/assets/65707789/2eceec9c-cbd0-41a2-985d-3da28bad3e61" />
 
 ## Hardware
 
-<h3>The game is made more realistic through the use of an intercom button and nixie tubes to display the numbers. The peripheral is required to enable speech-to-text, making the game more realistic, as if the user was pressing an intercom button. After the user releases the button, a D20 is rolled and the result is displayed using the nixie tubes with a special animation. This value is similar to a "perception check," and the result is crucial to determining the true killer.</h3>
+<h3>The game is made more realistic through the use of an intercom button and nixie tubes to display the numbers. The peripheral is required to enable speech-to-text, making the game more realistic, as if the user was pressing an intercom button. After the user releases the button, a D20 is rolled and the result is displayed using the nixie tubes with a special animation. This value is similar to a "perception check," and the result is crucial to determining the true killer. The code for the hardware can be found in <a href="https://github.com/BALD-rs/lucky-liars-hardware">this repository</a>.</h3>
 
 ## Developed by
 - Louis Quattrocchi
