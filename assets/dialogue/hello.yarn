@@ -33,11 +33,13 @@ Jesse: Who would you like to investigate detective?
 
 title: investigate_active
 ---
+<<declare $activeDossier = "PENDING!">>
 Jesse: What would you like to do?
 -> Interrogate
     Press Button To Interrogate.
 -> Read Dossier
-    TODO
+    Dossier: {$activeDossier}
+    <<jump investigate_active>>
 -> Send back
     <<send_back_active>>
     <<jump gameplay_loop>>

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::BufWriter;
@@ -57,6 +58,7 @@ struct StartGame;
 #[reflect(Resource, InspectorOptions)]
 struct GameInfo {
     game_id: String,
+    dossier_files: HashMap<String, String>,
 }
 
 #[derive(Resource)]
@@ -136,7 +138,14 @@ fn main() {
         .run();
 }
 
-fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>, mut globals: ResMut<GlobalVars>, game_info: Res<GameInfo>,  mut dr: Query<&mut DialogueRunner>) {
+fn handle_keypress (
+    keys: Res<Input<KeyCode>>,
+    mut mic: ResMut<Microphone>, 
+    mut globals: ResMut<GlobalVars>, 
+    game_info: Res<GameInfo>,  
+    mut dr: Query<&mut DialogueRunner>,
+    mut active: Query<&bevy::prelude::Name, With<Present>>,
+) {
     let mut buffer: [u8; 1] = [0; 1];
     match globals.port.get_mut().unwrap().read(&mut buffer) {
         Ok(bytes) => {
@@ -153,9 +162,10 @@ fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>, mut 
                         // For later optimizations
                         thread::sleep(Duration::from_millis(200));
                         let output = stt::parse_audio();
+                        let active_name = active.single_mut().to_string();
                         let req = req::InterrogateRequest {
                             game_id: game_info.game_id.clone(),
-                            name: String::from("clyde"),
+                            name: active_name,
                             message: output,
                             our_roll: 0,
                             sus_roll: 0,
@@ -376,6 +386,9 @@ fn start_game_listener(mut game_reader: EventReader<StartGame>, mut game: ResMut
     for _ in game_reader.read() {
         let start_response = req::start();
         game.game_id = start_response.game_id;
+        game.dossier_files.insert("clyde".to_string(), start_response.clyde);
+        game.dossier_files.insert("glinda".to_string(), start_response.glinda);
+        game.dossier_files.insert("harry".to_string(), start_response.harry);
         //println!("Game Code: {:?}", start_response);
     }
 }
@@ -384,10 +397,22 @@ fn send_back_active(In(()): In<()>, mut move_writer: EventWriter<MoveSuspect>) {
     move_writer.send(MoveSuspect { movement: Movement::SendBackActive});
 }
 
-fn send_forth(In(suspect_name): In<String>, mut move_writer: EventWriter<MoveSuspect>, query: Query<(&bevy::prelude::Name, Entity), With<Away>>) {
+fn send_forth(In(
+    suspect_name): In<String>,
+    mut move_writer: EventWriter<MoveSuspect>,
+    query: Query<(&bevy::prelude::Name, Entity), With<Away>>,
+    game_info: Res<GameInfo>,
+    mut dr: Query<&mut DialogueRunner>,
+) {
     for suspect in query.iter() {
         if suspect.0.to_string() == suspect_name {
             move_writer.send( MoveSuspect { movement: Movement::SendForth(suspect.1, suspect.0.clone())});
+            // Updates active dossier file in yarn spinner
+            let dossier_file = game_info.dossier_files.get(&suspect_name.to_ascii_lowercase()).unwrap();
+
+            let mut diag = dr.get_single_mut().unwrap();
+            let variable_storage = diag.variable_storage_mut();
+            variable_storage.set("$activeDossier".to_string(), dossier_file.clone().into());
         }
     }
 }    

@@ -25,9 +25,9 @@ pub struct InterrogateResponse {
 #[derive(Deserialize)]
 pub struct StartResponse {
     pub game_id: String,
-    clyde: String,
-    glinda: String,
-    harry: String,
+    pub clyde: String,
+    pub glinda: String,
+    pub harry: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
