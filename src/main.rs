@@ -253,7 +253,10 @@ fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
 }
 
 fn stop_poly(In(()): In<()>, mut globals: ResMut<GlobalVars>) {
-    globals.port.get_mut().unwrap().write("S".as_bytes());
+    for i in 0..50 {
+        globals.port.get_mut().unwrap().write("S".as_bytes());
+        thread::sleep(Duration::from_millis(i));
+    }
 }
 
 fn setup_camera(mut commands: Commands) {
@@ -304,19 +307,18 @@ fn main_menu(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppSta
         ctx.set_style(style);
 
         ui.horizontal_centered(|ui| {
-
-        ui.vertical_centered(|ui| {
-            ui.label(RichText::new("Lucky Liars").heading());
-            if ui.add(egui::Button::new("Start")).clicked() {
-                next_state.set(AppState::Game);
-            }
-            if ui.add(egui::Button::new("Options")).clicked() {
-                next_state.set(AppState::Options);
-            }
-            if ui.add(egui::Button::new("Exit")).clicked() {
-                std::process::exit(0);
-            }
-        });
+            ui.vertical_centered(|ui| {
+                ui.label(RichText::new("Lucky Liars").heading());
+                if ui.add(egui::Button::new("Start")).clicked() {
+                    next_state.set(AppState::Game);
+                }
+                if ui.add(egui::Button::new("Options")).clicked() {
+                    next_state.set(AppState::Options);
+                }
+                if ui.add(egui::Button::new("Exit")).clicked() {
+                    std::process::exit(0);
+                }
+            });
         });
     });
 }
