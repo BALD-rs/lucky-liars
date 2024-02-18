@@ -43,6 +43,13 @@ Jesse: What would you like to do?
     <<jump gameplay_loop>>
 ===
 
+title: interrogate_response
+---
+<<declare $activeSuspect = "Clyde">>
+<<declare $responseText = "PENDING!">>
+{$activeSuspect}: {$responseText}
+<<jump investigate_active>>
+===
 
 title: Prologue
 ---

@@ -136,7 +136,7 @@ fn main() {
         .run();
 }
 
-fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>, mut globals: ResMut<GlobalVars>) {
+fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>, mut globals: ResMut<GlobalVars>, game_info: Res<GameInfo>,  mut dr: Query<&mut DialogueRunner>) {
     let mut buffer: [u8; 1] = [0; 1];
     match globals.port.get_mut().unwrap().read(&mut buffer) {
         Ok(bytes) => {
@@ -145,22 +145,35 @@ fn handle_keypress (keys: Res<Input<KeyCode>>, mut mic: ResMut<Microphone>, mut 
                 // Button do be pressed
                 if button == 1 || button == 0 {
                     println!("We press");
-        // Already exists, kill
-        if let Some(tx) = &mut mic.producer {
-            // Kill is a go.
-            tx.send(5).unwrap();
-            mic.producer = None;
-            // For later optimizations
-            thread::sleep(Duration::from_millis(200));
-            let output = stt::parse_audio();
-            println!("{output}");
-        } else { // Not yet exist, life
-            let (tx, rx) = channel();
-            thread::spawn(move|| {
-                recording::record(rx);
-            });
-            mic.producer = Some(tx);
-        }
+                    // Already exists, kill
+                    if let Some(tx) = &mut mic.producer {
+                        // Kill is a go.
+                        tx.send(5).unwrap();
+                        mic.producer = None;
+                        // For later optimizations
+                        thread::sleep(Duration::from_millis(200));
+                        let output = stt::parse_audio();
+                        let req = req::InterrogateRequest {
+                            game_id: game_info.game_id.clone(),
+                            name: String::from("clyde"),
+                            message: output,
+                            our_roll: 0,
+                            sus_roll: 0,
+                        };
+                        let sus_ponse = req::interrogate(req);
+                        let mut diag = dr.get_single_mut().unwrap();
+                        let variable_storage = diag.variable_storage_mut();
+                        variable_storage.set("$responseText".to_string(), sus_ponse.into());
+                        diag.stop();
+                        diag.start_node("interrogate_response");
+                        //println!("{sus_ponse}");
+                    } else { // Not yet exist, life
+                        let (tx, rx) = channel();
+                        thread::spawn(move|| {
+                            recording::record(rx);
+                        });
+                        mic.producer = Some(tx);
+                    }
                 }
                 println!("{button}");
             }
