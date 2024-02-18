@@ -1,15 +1,16 @@
+use bevy_inspector_egui::prelude::*;
+use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use rand::Rng;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::BufWriter;
+use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
-use std::sync::mpsc::channel;
 use std::time::Duration;
-use bevy_inspector_egui::prelude::*;
-use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasBundle;
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasPlugin;
@@ -31,9 +32,9 @@ use hound::WavWriter;
 use serialport::SerialPort;
 
 use cornhacks24_game::recording;
+use cornhacks24_game::req;
 use cornhacks24_game::serial;
 use cornhacks24_game::stt;
-use cornhacks24_game::req;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, States, Default)]
 enum AppState {
@@ -45,7 +46,7 @@ enum AppState {
 
 #[derive(Resource)]
 struct Microphone {
-    producer: Option<Sender<i32>>
+    producer: Option<Sender<i32>>,
 }
 
 #[derive(Event)]
@@ -109,7 +110,7 @@ fn main() {
             color: Color::WHITE,
             brightness: 0.5,
         })
-        .insert_resource(Microphone{ producer: None})
+        .insert_resource(Microphone { producer: None })
         .insert_resource(GameInfo::default())
         .add_state::<AppState>()
         .add_event::<MoveSuspect>()
@@ -129,7 +130,10 @@ fn main() {
         .add_systems(Update, main_menu.run_if(in_state(AppState::MainMenu)))
         .add_systems(Update, show_options.run_if(in_state(AppState::Options)))
         .add_systems(OnEnter(AppState::Game), launch_game)
-        .add_systems(Update, (handle_movements, start_game_listener, handle_keypress))
+        .add_systems(
+            Update,
+            (handle_movements, start_game_listener, handle_keypress),
+        )
         .add_systems(
             OnEnter(AppState::Game),
             // Spawn the dialogue runner once the Yarn project has finished compiling
@@ -138,11 +142,11 @@ fn main() {
         .run();
 }
 
-fn handle_keypress (
+fn handle_keypress(
     keys: Res<Input<KeyCode>>,
-    mut mic: ResMut<Microphone>, 
-    mut globals: ResMut<GlobalVars>, 
-    game_info: Res<GameInfo>,  
+    mut mic: ResMut<Microphone>,
+    mut globals: ResMut<GlobalVars>,
+    game_info: Res<GameInfo>,
     mut dr: Query<&mut DialogueRunner>,
     mut active: Query<&bevy::prelude::Name, With<Present>>,
 ) {
@@ -163,23 +167,37 @@ fn handle_keypress (
                         thread::sleep(Duration::from_millis(200));
                         let output = stt::parse_audio();
                         let active_name = active.single_mut().to_string();
+                        let our_roll = rand::thread_rng().gen_range(0..20);
                         let req = req::InterrogateRequest {
                             game_id: game_info.game_id.clone(),
                             name: active_name,
                             message: output,
-                            our_roll: 0,
+                            our_roll: our_roll,
                             sus_roll: 0,
                         };
+                        globals
+                            .port
+                            .get_mut()
+                            .unwrap()
+                            .write(format!("D{}", our_roll.to_string()).as_bytes());
                         let sus_ponse = req::interrogate(req);
+                        let sus_ponse_text = sus_ponse.response;
+                        let sus_ponse_confidence = sus_ponse.confidence;
+                        globals
+                            .port
+                            .get_mut()
+                            .unwrap()
+                            .write(sus_ponse_confidence.to_string().as_bytes());
                         let mut diag = dr.get_single_mut().unwrap();
                         let variable_storage = diag.variable_storage_mut();
-                        variable_storage.set("$responseText".to_string(), sus_ponse.into());
+                        variable_storage.set("$responseText".to_string(), sus_ponse_text.into());
                         diag.stop();
                         diag.start_node("interrogate_response");
                         //println!("{sus_ponse}");
-                    } else { // Not yet exist, life
+                    } else {
+                        // Not yet exist, life
                         let (tx, rx) = channel();
-                        thread::spawn(move|| {
+                        thread::spawn(move || {
                             recording::record(rx);
                         });
                         mic.producer = Some(tx);
@@ -191,9 +209,7 @@ fn handle_keypress (
         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
         Err(e) => eprintln!("{:?}", e),
     }
-    if keys.just_pressed(KeyCode::Space) {
-        
-    }
+    if keys.just_pressed(KeyCode::Space) {}
 }
 
 fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
@@ -291,7 +307,7 @@ fn show_options(
             (Small, FontId::new(30.0, Proportional)),
         ]
         .into();
-        
+
         ctx.set_style(style);
         ui.vertical_centered(|ui| {
             ui.heading("Settings:");
@@ -331,7 +347,7 @@ fn launch_game(
             material: materials.add(Color::rgb_u8(255, 0, 0).into()),
             transform: Transform::from_xyz(0.0, 0.5, 0.0),
             ..default()
-        }
+        },
     ));
     commands.spawn((
         bevy::prelude::Name::new("Glinda"),
@@ -341,7 +357,7 @@ fn launch_game(
             material: materials.add(Color::rgb_u8(0, 255, 0).into()),
             transform: Transform::from_xyz(0.0, 0.5, 0.0),
             ..default()
-        }
+        },
     ));
     commands.spawn((
         bevy::prelude::Name::new("Harry"),
@@ -351,7 +367,7 @@ fn launch_game(
             material: materials.add(Color::rgb_u8(0, 0, 255).into()),
             transform: Transform::from_xyz(0.0, 0.5, 0.0),
             ..default()
-        }
+        },
     ));
 
     commands.spawn(PointLightBundle {
@@ -386,19 +402,24 @@ fn start_game_listener(mut game_reader: EventReader<StartGame>, mut game: ResMut
     for _ in game_reader.read() {
         let start_response = req::start();
         game.game_id = start_response.game_id;
-        game.dossier_files.insert("clyde".to_string(), start_response.clyde);
-        game.dossier_files.insert("glinda".to_string(), start_response.glinda);
-        game.dossier_files.insert("harry".to_string(), start_response.harry);
+        game.dossier_files
+            .insert("clyde".to_string(), start_response.clyde);
+        game.dossier_files
+            .insert("glinda".to_string(), start_response.glinda);
+        game.dossier_files
+            .insert("harry".to_string(), start_response.harry);
         //println!("Game Code: {:?}", start_response);
     }
 }
 
 fn send_back_active(In(()): In<()>, mut move_writer: EventWriter<MoveSuspect>) {
-    move_writer.send(MoveSuspect { movement: Movement::SendBackActive});
+    move_writer.send(MoveSuspect {
+        movement: Movement::SendBackActive,
+    });
 }
 
-fn send_forth(In(
-    suspect_name): In<String>,
+fn send_forth(
+    In(suspect_name): In<String>,
     mut move_writer: EventWriter<MoveSuspect>,
     query: Query<(&bevy::prelude::Name, Entity), With<Away>>,
     game_info: Res<GameInfo>,
@@ -406,16 +427,21 @@ fn send_forth(In(
 ) {
     for suspect in query.iter() {
         if suspect.0.to_string() == suspect_name {
-            move_writer.send( MoveSuspect { movement: Movement::SendForth(suspect.1, suspect.0.clone())});
+            move_writer.send(MoveSuspect {
+                movement: Movement::SendForth(suspect.1, suspect.0.clone()),
+            });
             // Updates active dossier file in yarn spinner
-            let dossier_file = game_info.dossier_files.get(&suspect_name.to_ascii_lowercase()).unwrap();
+            let dossier_file = game_info
+                .dossier_files
+                .get(&suspect_name.to_ascii_lowercase())
+                .unwrap();
 
             let mut diag = dr.get_single_mut().unwrap();
             let variable_storage = diag.variable_storage_mut();
             variable_storage.set("$activeDossier".to_string(), dossier_file.clone().into());
         }
     }
-}    
+}
 
 fn handle_movements(
     mut ev_reader: EventReader<MoveSuspect>,
@@ -429,14 +455,19 @@ fn handle_movements(
                 commands.entity(active.single().0).remove::<Present>();
                 // Sends Entity back through door
                 let mut anim = AnimationClip::default();
-                
-                anim.add_curve_to_path(EntityPath {parts: vec![active.single().1.clone()]}, VariableCurve {
-                    keyframe_timestamps: vec![0.0, 3.0],
-                    keyframes: Keyframes::Translation(vec![
-                        Vec3::new(2.1, 2.6, 0.2),
-                        Vec3::new(4.8, 2.6, -9.5),
-                    ]),
-                });
+
+                anim.add_curve_to_path(
+                    EntityPath {
+                        parts: vec![active.single().1.clone()],
+                    },
+                    VariableCurve {
+                        keyframe_timestamps: vec![0.0, 3.0],
+                        keyframes: Keyframes::Translation(vec![
+                            Vec3::new(2.1, 2.6, 0.2),
+                            Vec3::new(4.8, 2.6, -9.5),
+                        ]),
+                    },
+                );
 
                 let mut anim_player = AnimationPlayer::default();
 
@@ -447,14 +478,19 @@ fn handle_movements(
                 commands.entity(*entity).insert(Present);
                 // Sends Entity into chair
                 let mut anim = AnimationClip::default();
-                
-                anim.add_curve_to_path(EntityPath {parts: vec![name.clone()]}, VariableCurve {
-                    keyframe_timestamps: vec![0.0, 3.0],
-                    keyframes: Keyframes::Translation(vec![
-                        Vec3::new(4.8, 2.6, -9.5),
-                        Vec3::new(2.1, 2.6, 0.2),
-                    ]),
-                });
+
+                anim.add_curve_to_path(
+                    EntityPath {
+                        parts: vec![name.clone()],
+                    },
+                    VariableCurve {
+                        keyframe_timestamps: vec![0.0, 3.0],
+                        keyframes: Keyframes::Translation(vec![
+                            Vec3::new(4.8, 2.6, -9.5),
+                            Vec3::new(2.1, 2.6, 0.2),
+                        ]),
+                    },
+                );
 
                 let mut anim_player = AnimationPlayer::default();
 

@@ -20,6 +20,7 @@ pub struct InterrogateRequest {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InterrogateResponse {
     pub response: String,
+    pub confidence: u8,
 }
 
 #[derive(Deserialize)]
@@ -28,6 +29,7 @@ pub struct StartResponse {
     pub clyde: String,
     pub glinda: String,
     pub harry: String,
+    pub killer: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -37,7 +39,7 @@ pub struct dossiers {
     harry: String,
 }
 
-pub fn interrogate(req: InterrogateRequest) -> String {
+pub fn interrogate(req: InterrogateRequest) -> InterrogateResponse {
     dotenv().ok();
     let res = reqwest::blocking::Client::new()
         .post(format!("{}{}", dotenv!("API_BASE_URL"), "interrogate"))
@@ -45,7 +47,7 @@ pub fn interrogate(req: InterrogateRequest) -> String {
         .send()
         .unwrap();
     let json = res.json::<InterrogateResponse>().unwrap();
-    json.response
+    json
 }
 
 pub fn clear(req: ClearRequest) -> String {
@@ -63,6 +65,6 @@ pub fn start() -> StartResponse {
         .post(format!("{}{}", dotenv!("API_BASE_URL"), "start"))
         .send()
         .unwrap();
-        let json = res.json::<StartResponse>().unwrap();
-        json
+    let json = res.json::<StartResponse>().unwrap();
+    json
 }
