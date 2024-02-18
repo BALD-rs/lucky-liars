@@ -1,5 +1,7 @@
 use bevy::audio::AudioPlugin;
 use bevy::render::mesh::shape::Plane;
+use bevy_egui::egui::style::Spacing;
+use bevy_egui::egui::RichText;
 use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use cornhacks24_game::req::start;
@@ -286,7 +288,7 @@ fn main_menu(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppSta
         let mut style = (*ctx.style()).clone();
 
         style.text_styles = [
-            (Heading, FontId::new(30.0, Proportional)),
+            (Heading, FontId::new(60.0, Proportional)),
             (Name("Heading2".into()), FontId::new(25.0, Proportional)),
             (Name("Context".into()), FontId::new(23.0, Proportional)),
             (Body, FontId::new(28.0, Proportional)),
@@ -301,7 +303,10 @@ fn main_menu(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppSta
 
         ctx.set_style(style);
 
+        ui.horizontal_centered(|ui| {
+
         ui.vertical_centered(|ui| {
+            ui.label(RichText::new("Lucky Liars").heading());
             if ui.add(egui::Button::new("Start")).clicked() {
                 next_state.set(AppState::Game);
             }
@@ -311,6 +316,7 @@ fn main_menu(mut contexts: EguiContexts, mut next_state: ResMut<NextState<AppSta
             if ui.add(egui::Button::new("Exit")).clicked() {
                 std::process::exit(0);
             }
+        });
         });
     });
 }
