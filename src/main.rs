@@ -248,7 +248,7 @@ fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
         .add_command("end_game", end_game)
         .add_command("stop_poly", stop_poly);
     // Immediately start showing the dialogue to the player
-    dialogue_runner.start_node("gameplay_loop");
+    dialogue_runner.start_node("Prologue");
     commands.spawn(dialogue_runner);
 }
 
