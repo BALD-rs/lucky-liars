@@ -2,6 +2,8 @@ use std::sync::Mutex;
 
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasBundle;
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasPlugin;
+use bevy::ecs::entity;
+use bevy::ecs::query::WorldQuery;
 use bevy::pbr::ScreenSpaceAmbientOcclusionBundle;
 use bevy::prelude::*;
 use bevy::render::mesh::shape::Circle;
@@ -32,6 +34,16 @@ struct GlobalVars {
     port: Mutex<Box<dyn SerialPort>>,
 }
 
+#[derive(Event)]
+struct MoveSuspect {
+    movement: Movement,
+}
+
+enum Movement {
+    SendBackActive,
+    SendForth(Entity),
+}
+
 #[derive(Resource, Default)]
 struct Settings {
     volume: f32,
@@ -40,10 +52,7 @@ struct Settings {
     hardware_devices: Vec<String>,
 }
 
-#[derive(Component)]
-struct Suspect {
-    name: String,
-}
+
 
 #[derive(Component)]
 struct Away;
@@ -55,7 +64,7 @@ struct Present;
 struct Transitioning;
 
 fn main() {
-    let (port_names, mut port) = serial::setup();
+    //let (port_names, mut port) = serial::setup();
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(EguiPlugin)
@@ -74,24 +83,26 @@ fn main() {
             brightness: 0.5,
         })
         .add_state::<AppState>()
+        .add_event::<MoveSuspect>()
         .insert_resource(Settings {
             volume: 1.0,
             hardware_pg: true,
-            current_device: port_names.first().unwrap().to_owned(),
-            hardware_devices: port_names,
+            current_device: String::from("jokin"),
+            hardware_devices: Vec::new(),
         })
         .insert_resource(Msaa::Off)
-        .insert_resource(GlobalVars {
-            port: Mutex::new(port),
-        })
+        // .insert_resource(GlobalVars {
+        //     port: Mutex::new(port),
+        // })
         .add_systems(Startup, setup_camera)
         .add_systems(Update, main_menu.run_if(in_state(AppState::MainMenu)))
         .add_systems(Update, show_options.run_if(in_state(AppState::Options)))
         .add_systems(OnEnter(AppState::Game), launch_game)
+        .add_systems(Update, handle_movements)
         .add_systems(
             OnEnter(AppState::Game),
             // Spawn the dialogue runner once the Yarn project has finished compiling
-            spawn_dialogue_runner.run_if(resource_added::<YarnProject>()),
+            (spawn_dialogue_runner.run_if(resource_added::<YarnProject>())),
         )
         .run();
 }
@@ -99,8 +110,12 @@ fn main() {
 fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
     // Create a dialogue runner from the project.
     let mut dialogue_runner = project.create_dialogue_runner();
+    dialogue_runner
+        .commands_mut()
+        .add_command("send_back_active", send_back_active)
+        .add_command("send_forth", send_forth);
     // Immediately start showing the dialogue to the player
-    dialogue_runner.start_node("Prologue");
+    dialogue_runner.start_node("CharTesting");
     commands.spawn(dialogue_runner);
 }
 
@@ -213,32 +228,38 @@ fn launch_game(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut animations: ResMut<Assets<AnimationClip>>,
     asset_server: Res<AssetServer>,
-    mut global_vars: ResMut<GlobalVars>,
+    //mut global_vars: ResMut<GlobalVars>,
 ) {
-    // Camera (yippee)
-    // commands.spawn(Camera3dBundle {
-    //     transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-    //     ..default()
-    // });
-
     // Suspects (scary)
     commands.spawn((
-        Suspect {
-            name: String::from("Suspect 1"),
-        },
+        bevy::prelude::Name::new("Clyde"),
         Away,
+        PbrBundle {
+            mesh: meshes.add(Cube::new(1.0).into()),
+            material: materials.add(Color::rgb_u8(255, 0, 0).into()),
+            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+            ..default()
+        }
     ));
     commands.spawn((
-        Suspect {
-            name: String::from("Suspect 2"),
-        },
+        bevy::prelude::Name::new("Glinda"),
         Away,
+        PbrBundle {
+            mesh: meshes.add(Cube::new(1.0).into()),
+            material: materials.add(Color::rgb_u8(0, 255, 0).into()),
+            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+            ..default()
+        }
     ));
     commands.spawn((
-        Suspect {
-            name: String::from("Suspect 3"),
-        },
+        bevy::prelude::Name::new("Harry"),
         Away,
+        PbrBundle {
+            mesh: meshes.add(Cube::new(1.0).into()),
+            material: materials.add(Color::rgb_u8(0, 0, 255).into()),
+            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+            ..default()
+        }
     ));
 
     commands.spawn(PointLightBundle {
@@ -265,6 +286,54 @@ fn launch_game(
     },));
 
     println!("Added assets");
-    recording::record();
+    //recording::record();
     println!("{}", stt::parse_audio());
+}
+
+fn send_back_active(In(()): In<()>, mut move_writer: EventWriter<MoveSuspect>) {
+    move_writer.send(MoveSuspect { movement: Movement::SendBackActive});
+}
+
+fn send_forth(In(suspect_name): In<String>, mut move_writer: EventWriter<MoveSuspect>, query: Query<(&bevy::prelude::Name, Entity), With<Away>>) {
+    for suspect in query.iter() {
+        if suspect.0.to_string() == suspect_name {
+            move_writer.send( MoveSuspect { movement: Movement::SendForth(suspect.1)});
+        }
+    }
+}    
+
+fn handle_movements(
+    mut ev_reader: EventReader<MoveSuspect>,
+    active: Query<(Entity, &bevy::prelude::Name), With<Present>>,
+    mut commands: Commands,
+    mut animations: ResMut<Assets<AnimationClip>>,
+) {
+    for ev in ev_reader.read() {
+        match ev.movement {
+            Movement::SendBackActive => {
+                commands.entity(active.single().0).remove::<Present>();
+                let mut anim = AnimationClip::default();
+                
+                anim.add_curve_to_path(EntityPath {parts: vec![active.single().1.clone()]}, VariableCurve {
+                    keyframe_timestamps: vec![0.0, 1.0, 2.0, 3.0, 4.0],
+                    keyframes: Keyframes::Translation(vec![
+                        Vec3::new(0.0, -2.0, 0.0),
+                        Vec3::new(0.0, 1.0, 0.0),
+                        Vec3::new(0.0, 1.0, 0.0),
+                        Vec3::new(0.0, 1.0, 0.0),
+                        Vec3::new(0.0, 1.0, 0.0),
+                    ]),
+                });
+
+                let mut anim_player = AnimationPlayer::default();
+
+                anim_player.play(animations.add(anim));
+                commands.entity(active.single().0).insert(anim_player);
+            }
+            Movement::SendForth(entity) => {
+                commands.entity(entity).insert(Present);
+                // Play send forth anim here
+            }
+        }
+    }
 }

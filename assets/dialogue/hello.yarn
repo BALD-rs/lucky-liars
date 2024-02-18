@@ -1,3 +1,22 @@
+title: CharTesting
+---
+Welcome to america!
+-> SEND BACK ACTIVE
+    Active!
+    <<send_back_active>>
+-> Send forth Clyde
+    bringing
+    <<send_forth Clyde>>
+-> Send forth Glinda
+    bringing
+    <<send_forth Glinda>>
+-> Send forth Harry
+    bringing
+    <<send_forth Harry>>
+<<jump CharTesting>>
+===
+
+
 title: Prologue
 ---
 20 years ago...
