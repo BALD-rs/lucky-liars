@@ -491,6 +491,7 @@ fn send_forth(
             let mut diag = dr.get_single_mut().unwrap();
             let variable_storage = diag.variable_storage_mut();
             variable_storage.set("$activeDossier".to_string(), dossier_file.clone().into());
+            variable_storage.set("$activeSuspect".to_string(), suspect.0.to_string().into());
         }
     }
 }
