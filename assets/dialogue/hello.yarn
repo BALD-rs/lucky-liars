@@ -16,6 +16,33 @@ Welcome to america!
 <<jump CharTesting>>
 ===
 
+title: gameplay_loop
+---
+Jesse: Who would you like to investigate detective?
+-> Send forth Clyde
+    Jesse: Retrieving Clyde.
+    <<send_forth Clyde>>
+-> Send forth Glinda
+    Jesse: Bringing you Glinda.
+    <<send_forth Glinda>>
+-> Send forth Harry
+    Jesse: Here's Harry.
+    <<send_forth Harry>>
+<<jump investigate_active>>
+===
+
+title: investigate_active
+---
+Jesse: What would you like to do?
+-> Interrogate
+    Press Button To Interrogate.
+-> Read Dossier
+    TODO
+-> Send back
+    <<send_back_active>>
+    <<jump gameplay_loop>>
+===
+
 
 title: Prologue
 ---
@@ -49,4 +76,5 @@ Finally you have your polygraph. This will be on the right of your screen OR if 
 In order to talk to your suspects you can either use your voice or write your response if you don't want to use your mic
 If you have the specialty hardware kit™ you can use the built-in button to use push-to-talk with the suspect
 -> Bring in the suspects!
+    <<jump gameplay_loop>>
 ===

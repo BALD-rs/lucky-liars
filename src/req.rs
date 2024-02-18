@@ -21,6 +21,14 @@ pub struct InterrogateResponse {
     pub response: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StartResponse {
+    pub game_id: String,
+    // pub clyde: String,
+    // pub glinda: String,
+    // pub harry: String,
+}
+
 pub fn interrogate(req: InterrogateRequest) -> String {
     dotenv().ok();
     let res = reqwest::blocking::Client::new()
@@ -42,9 +50,11 @@ pub fn clear(req: ClearRequest) -> String {
     json.response
 }
 
-pub fn start() {
+pub fn start() -> StartResponse {
     let res = reqwest::blocking::Client::new()
         .post(format!("{}{}", dotenv!("API_BASE_URL"), "start"))
         .send()
         .unwrap();
+        let json = res.json::<StartResponse>().unwrap();
+        json
 }

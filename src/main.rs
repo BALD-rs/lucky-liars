@@ -1,3 +1,7 @@
+use std::fs::File;
+use std::io::BufWriter;
+use std::sync::mpsc::Sender;
+use std::sync::Arc;
 use std::sync::Mutex;
 
 use bevy::core_pipeline::experimental::taa::TemporalAntiAliasBundle;
@@ -12,14 +16,17 @@ use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_yarnspinner::prelude::*;
 use bevy_yarnspinner_example_dialogue_view::prelude::*;
+use cpal::Stream;
 use egui::FontFamily::Proportional;
 use egui::FontId;
 use egui::TextStyle::*;
+use hound::WavWriter;
 use serialport::SerialPort;
 
 use cornhacks24_game::recording;
 use cornhacks24_game::serial;
 use cornhacks24_game::stt;
+use cornhacks24_game::req;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, States, Default)]
 enum AppState {
@@ -27,6 +34,22 @@ enum AppState {
     MainMenu,
     Options,
     Game,
+}
+
+#[derive(Resource)]
+struct microphone {
+    producer: Sender<i32>
+}
+
+#[derive(Event)]
+struct StopMic;
+
+#[derive(Event)]
+struct StartGame;
+
+#[derive(Resource, Default)]
+struct GameInfo {
+    game_id: String,
 }
 
 #[derive(Resource)]
@@ -41,7 +64,7 @@ struct MoveSuspect {
 
 enum Movement {
     SendBackActive,
-    SendForth(Entity),
+    SendForth(Entity, bevy::prelude::Name),
 }
 
 #[derive(Resource, Default)]
@@ -51,8 +74,6 @@ struct Settings {
     current_device: String,
     hardware_devices: Vec<String>,
 }
-
-
 
 #[derive(Component)]
 struct Away;
@@ -69,11 +90,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(EguiPlugin)
         .add_plugins((
-            // Register the Yarn Spinner plugin using its default settings, which will look for Yarn files in the "dialogue" folder.
-            // If this app should support Wasm or Android, we cannot load files without specifying them, so use the following instead.
-            // YarnSpinnerPlugin::with_yarn_source(YarnFileSource::file("dialogue/hello_world.yarn")),
             YarnSpinnerPlugin::new(),
-            // Initialize the bundled example UI
             ExampleYarnSpinnerDialogueViewPlugin::new(),
         ))
         .add_plugins(WorldInspectorPlugin::new())
@@ -82,8 +99,11 @@ fn main() {
             color: Color::WHITE,
             brightness: 0.5,
         })
+        .insert_resource(GameInfo::default())
         .add_state::<AppState>()
         .add_event::<MoveSuspect>()
+        .add_event::<StartGame>()
+        .add_event::<StopMic>()
         .insert_resource(Settings {
             volume: 1.0,
             hardware_pg: true,
@@ -98,13 +118,19 @@ fn main() {
         .add_systems(Update, main_menu.run_if(in_state(AppState::MainMenu)))
         .add_systems(Update, show_options.run_if(in_state(AppState::Options)))
         .add_systems(OnEnter(AppState::Game), launch_game)
-        .add_systems(Update, handle_movements)
+        .add_systems(Update, (handle_movements, start_game_listener))
         .add_systems(
             OnEnter(AppState::Game),
             // Spawn the dialogue runner once the Yarn project has finished compiling
             (spawn_dialogue_runner.run_if(resource_added::<YarnProject>())),
         )
         .run();
+}
+
+fn handle_keypress (keys: Res<Input<KeyCode>>) {
+    if keys.just_pressed(KeyCode::Space) {
+        
+    }
 }
 
 fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
@@ -115,7 +141,7 @@ fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
         .add_command("send_back_active", send_back_active)
         .add_command("send_forth", send_forth);
     // Immediately start showing the dialogue to the player
-    dialogue_runner.start_node("CharTesting");
+    dialogue_runner.start_node("gameplay_loop");
     commands.spawn(dialogue_runner);
 }
 
@@ -202,7 +228,7 @@ fn show_options(
             (Small, FontId::new(30.0, Proportional)),
         ]
         .into();
-
+        
         ctx.set_style(style);
         ui.vertical_centered(|ui| {
             ui.heading("Settings:");
@@ -228,8 +254,11 @@ fn launch_game(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut animations: ResMut<Assets<AnimationClip>>,
     asset_server: Res<AssetServer>,
+    mut game_writer: EventWriter<StartGame>,
     //mut global_vars: ResMut<GlobalVars>,
 ) {
+    game_writer.send(StartGame);
+
     // Suspects (scary)
     commands.spawn((
         bevy::prelude::Name::new("Clyde"),
@@ -290,6 +319,13 @@ fn launch_game(
     println!("{}", stt::parse_audio());
 }
 
+fn start_game_listener(mut game_reader: EventReader<StartGame>) {
+    for _ in game_reader.read() {
+        let start_response = req::start();
+        println!("Game Code: {:?}", start_response);
+    }
+}
+
 fn send_back_active(In(()): In<()>, mut move_writer: EventWriter<MoveSuspect>) {
     move_writer.send(MoveSuspect { movement: Movement::SendBackActive});
 }
@@ -297,7 +333,7 @@ fn send_back_active(In(()): In<()>, mut move_writer: EventWriter<MoveSuspect>) {
 fn send_forth(In(suspect_name): In<String>, mut move_writer: EventWriter<MoveSuspect>, query: Query<(&bevy::prelude::Name, Entity), With<Away>>) {
     for suspect in query.iter() {
         if suspect.0.to_string() == suspect_name {
-            move_writer.send( MoveSuspect { movement: Movement::SendForth(suspect.1)});
+            move_writer.send( MoveSuspect { movement: Movement::SendForth(suspect.1, suspect.0.clone())});
         }
     }
 }    
@@ -309,19 +345,17 @@ fn handle_movements(
     mut animations: ResMut<Assets<AnimationClip>>,
 ) {
     for ev in ev_reader.read() {
-        match ev.movement {
+        match &ev.movement {
             Movement::SendBackActive => {
                 commands.entity(active.single().0).remove::<Present>();
+                // Sends Entity back through door
                 let mut anim = AnimationClip::default();
                 
                 anim.add_curve_to_path(EntityPath {parts: vec![active.single().1.clone()]}, VariableCurve {
-                    keyframe_timestamps: vec![0.0, 1.0, 2.0, 3.0, 4.0],
+                    keyframe_timestamps: vec![0.0, 3.0],
                     keyframes: Keyframes::Translation(vec![
-                        Vec3::new(0.0, -2.0, 0.0),
-                        Vec3::new(0.0, 1.0, 0.0),
-                        Vec3::new(0.0, 1.0, 0.0),
-                        Vec3::new(0.0, 1.0, 0.0),
-                        Vec3::new(0.0, 1.0, 0.0),
+                        Vec3::new(2.1, 2.6, 0.2),
+                        Vec3::new(4.8, 2.6, -9.5),
                     ]),
                 });
 
@@ -330,9 +364,23 @@ fn handle_movements(
                 anim_player.play(animations.add(anim));
                 commands.entity(active.single().0).insert(anim_player);
             }
-            Movement::SendForth(entity) => {
-                commands.entity(entity).insert(Present);
-                // Play send forth anim here
+            Movement::SendForth(entity, name) => {
+                commands.entity(*entity).insert(Present);
+                // Sends Entity into chair
+                let mut anim = AnimationClip::default();
+                
+                anim.add_curve_to_path(EntityPath {parts: vec![name.clone()]}, VariableCurve {
+                    keyframe_timestamps: vec![0.0, 3.0],
+                    keyframes: Keyframes::Translation(vec![
+                        Vec3::new(4.8, 2.6, -9.5),
+                        Vec3::new(2.1, 2.6, 0.2),
+                    ]),
+                });
+
+                let mut anim_player = AnimationPlayer::default();
+
+                anim_player.play(animations.add(anim));
+                commands.entity(*entity).insert(anim_player);
             }
         }
     }

@@ -1,7 +1,11 @@
 use clap::Parser;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{FromSample, Sample, SupportedStreamConfig};
+use cpal::{FromSample, Sample, Stream, SupportedStreamConfig};
+use hound::WavWriter;
 use std::fs::File;
+use std::thread;
+use std::sync::mpsc::{channel, Receiver};
+
 use std::io::BufWriter;
 use std::sync::{Arc, Mutex};
 
@@ -27,8 +31,13 @@ struct Opt {
     jack: bool,
 }
 
-pub fn record() -> Result<(), anyhow::Error> {
+pub fn record(rx: Receiver<i32>) -> Result<(), anyhow::Error> {
     let opt = Opt::parse();
+    // Create a simple streaming channel
+    let (tx, rx) = channel();
+    thread::spawn(move|| {
+        tx.send(10).unwrap();
+    });
 
     // Conditionally compile with jack if the feature is specified.
     #[cfg(all(
@@ -136,15 +145,12 @@ pub fn record() -> Result<(), anyhow::Error> {
 
     stream.play()?;
 
-    // Let recording go for roughly three seconds.
-    let mut buttonPressed = true;
-    while buttonPressed {
-        std::thread::sleep(std::time::Duration::from_secs(0));
-        buttonPressed = false;
+    if let Ok(_) = rx.recv() {
+        drop(stream);
+        writer.lock().unwrap().take().unwrap().finalize()?;
+        println!("Recording {} complete!", PATH);
     }
-    drop(stream);
-    writer.lock().unwrap().take().unwrap().finalize()?;
-    println!("Recording {} complete!", PATH);
+
     Ok(())
 }
 
