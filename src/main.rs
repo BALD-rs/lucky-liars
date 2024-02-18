@@ -109,7 +109,7 @@ fn main() {
         .add_plugins(TemporalAntiAliasPlugin)
         .insert_resource(AmbientLight {
             color: Color::WHITE,
-            brightness: 0.5,
+            brightness: 0.3,
         })
         .insert_resource(Microphone { producer: None })
         .insert_resource(GameInfo::default())
@@ -391,7 +391,21 @@ fn launch_game(
             z: 0.0,
         }),
         ..default()
-    },));
+    }));
+
+    commands.spawn((
+        bevy::prelude::Name::new("door"),
+        Door,
+        SceneBundle {
+            scene: asset_server.load("3d/door.glb#Scene0"),
+            transform: Transform::from_translation(Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }),
+            ..default()
+        },
+    ));
 
 }
 
@@ -415,10 +429,14 @@ fn send_back_active(In(()): In<()>, mut move_writer: EventWriter<MoveSuspect>) {
     });
 }
 
+#[derive(Component)]
+pub struct Door;
+
 fn send_forth(
     In(suspect_name): In<String>,
     mut move_writer: EventWriter<MoveSuspect>,
     query: Query<(&bevy::prelude::Name, Entity), With<Away>>,
+    
     game_info: Res<GameInfo>,
     mut dr: Query<&mut DialogueRunner>,
 ) {
@@ -443,6 +461,7 @@ fn send_forth(
 fn handle_movements(
     mut ev_reader: EventReader<MoveSuspect>,
     active: Query<(Entity, &bevy::prelude::Name), With<Present>>,
+    door: Query<(Entity, &bevy::prelude::Name), With<Door>>,
     mut commands: Commands,
     mut animations: ResMut<Assets<AnimationClip>>,
 ) {
@@ -466,10 +485,28 @@ fn handle_movements(
                     },
                 );
 
+                anim.add_curve_to_path(
+                    EntityPath {
+                        parts: vec![door.single().1.clone()],
+                    },
+                    VariableCurve {
+                        keyframe_timestamps: vec![0.0, 1.5, 3.0],
+                        keyframes: Keyframes::Rotation(vec![
+                            Quat::from_rotation_y(0.0),
+                            Quat::from_rotation_y(2.0),
+                            Quat::from_rotation_y(0.0)
+                        ]),
+                    },
+                );
+
                 let mut anim_player = AnimationPlayer::default();
 
-                anim_player.play(animations.add(anim));
+                anim_player.play(animations.add(anim.clone()));
                 commands.entity(active.single().0).insert(anim_player);
+
+                let mut anim_player2 = AnimationPlayer::default();
+                anim_player2.play(animations.add(anim));
+                commands.entity(door.single().0).insert(anim_player2);
             }
             Movement::SendForth(entity, name) => {
                 commands.entity(*entity).insert(Present);
@@ -489,10 +526,29 @@ fn handle_movements(
                     },
                 );
 
-                let mut anim_player = AnimationPlayer::default();
+                anim.add_curve_to_path(
+                    EntityPath {
+                        parts: vec![door.single().1.clone()],
+                    },
+                    VariableCurve {
+                        keyframe_timestamps: vec![0.0, 1.5, 3.0],
+                        keyframes: Keyframes::Rotation(vec![
+                            Quat::from_rotation_y(0.0),
+                            Quat::from_rotation_y(2.0),
+                            Quat::from_rotation_y(0.0)
+                        ]),
+                    },
+                );
 
-                anim_player.play(animations.add(anim));
+                let mut anim_player = AnimationPlayer::default();
+                let mut anim_player2 = AnimationPlayer::default();
+
+
+                anim_player.play(animations.add(anim.clone()));
+                anim_player2.play(animations.add(anim));
+                
                 commands.entity(*entity).insert(anim_player);
+                commands.entity(door.single().0).insert(anim_player2);
             }
         }
     }
