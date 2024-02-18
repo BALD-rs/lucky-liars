@@ -31,6 +31,20 @@ Jesse: Who would you like to investigate detective?
 <<jump investigate_active>>
 ===
 
+title: win
+---
+Congrats!
+You Won!
+You were not killed by our 170v nixie tubes!
+===
+
+title: lose
+---
+You fool.
+You lose!
+The murderer runs free.
+===
+
 title: investigate_active
 ---
 <<declare $activeDossier = "PENDING!">>
@@ -43,6 +57,17 @@ Jesse: What would you like to do?
 -> Send back
     <<send_back_active>>
     <<jump gameplay_loop>>
+-> Guess Killer
+    Who do you think it is?
+    -> Clyde
+        Lets see if it's Clyde.
+        <<end_game clyde>>
+    -> Glinda
+        Lets see if it's Glinda.
+         <<end_game glinda>>
+    -> Harry
+        Lets see if it's Harry.
+         <<end_game harry>>
 ===
 
 title: interrogate_response

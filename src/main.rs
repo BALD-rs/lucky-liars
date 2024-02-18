@@ -2,6 +2,7 @@ use bevy::audio::AudioPlugin;
 use bevy::render::mesh::shape::Plane;
 use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use cornhacks24_game::req::start;
 use cornhacks24_game::tts;
 use rand::Rng;
 use std::collections::HashMap;
@@ -63,6 +64,7 @@ struct StartGame;
 struct GameInfo {
     game_id: String,
     dossier_files: HashMap<String, String>,
+    killer: String,
 }
 
 #[derive(Resource)]
@@ -223,13 +225,30 @@ fn handle_keypress(
     if keys.just_pressed(KeyCode::Space) {}
 }
 
+fn end_game(
+    In(guess): In<(String)>,
+    game_info: Res<GameInfo>,
+    mut dr: Query<&mut DialogueRunner>
+) {
+    let mut diag = dr.get_single_mut().unwrap();
+    diag.stop();
+    
+    if guess == game_info.killer {
+        diag.start_node("win");
+    } else {
+        diag.start_node("lose");
+    }
+    
+}
+
 fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
     // Create a dialogue runner from the project.
     let mut dialogue_runner = project.create_dialogue_runner();
     dialogue_runner
         .commands_mut()
         .add_command("send_back_active", send_back_active)
-        .add_command("send_forth", send_forth);
+        .add_command("send_forth", send_forth)
+        .add_command("end_game", end_game);
     // Immediately start showing the dialogue to the player
     dialogue_runner.start_node("gameplay_loop");
     commands.spawn(dialogue_runner);
@@ -430,6 +449,7 @@ fn start_game_listener(mut game_reader: EventReader<StartGame>, mut game: ResMut
             .insert("glinda".to_string(), start_response.glinda);
         game.dossier_files
             .insert("harry".to_string(), start_response.harry);
+        game.killer = start_response.killer;
         //println!("Game Code: {:?}", start_response);
     }
 }
